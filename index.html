@@ -778,7 +778,22 @@
 
     // ===== ربط Google Sheet: إرسال بيانات للأب سكريبت =====
     // غيّر اللينك ده بعد ما تعمل Publish للـ Apps Script كـ Web App
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/library/d/1f_FsK0ePi8HJ0fz1WGPgN2goC879Fq0GojCwukDg62jBpQkVpSW2dk-a/1";
+   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw5fXG6nwErexXbGpLrStZ7LJXyKjlMDWvDlR7lzhzQyMZMPNTshIssl4EvXZ4_fHuH/exec";
+
+async function sendTaskToGoogleSheet(payload) {
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        throw new Error("HTTP Error " + response.status);
+    }
+    return response.json();
+}
+
 
     async function sendTaskToGoogleSheet(payload) {
         const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -842,5 +857,6 @@
 
 </body>
 </html>
+
 
 
