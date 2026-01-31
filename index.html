@@ -776,26 +776,13 @@
         }
     });
 
-    // ===== ربط Google Sheet: إرسال بيانات للأب سكريبت =====
-    // غيّر اللينك ده بعد ما تعمل Publish للـ Apps Script كـ Web App
-   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlPJ1ILVO-P5TlWuU5hCC2a4h7HkOMCpflKtfCmvHRLvESBAKcJ33UiJve3hrvbkw/exec";
-
-async function sendTaskToGoogleSheet(payload) {
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-        throw new Error("HTTP Error " + response.status);
-    }
-    return response.json();
-}
-
+    // ===== ربط Google Sheet: إرسال بيانات إلى Apps Script =====
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlPJ1ILVO-P5TlWuU5hCC2a4h7HkOMCpflKtfCmvHRLvESBAKcJ33UiJve3hrvbkw/exec";
 
     async function sendTaskToGoogleSheet(payload) {
+        // لو حابب تشوف الـ payload في Console
+        console.log("Sending payload to Apps Script:", payload);
+
         const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: "POST",
             headers: {
@@ -803,10 +790,14 @@ async function sendTaskToGoogleSheet(payload) {
             },
             body: JSON.stringify(payload)
         });
+
         if (!response.ok) {
             throw new Error("HTTP Error " + response.status);
         }
-        return response.json();
+
+        const data = await response.json();
+        console.log("Script response:", data);
+        return data;
     }
 
     document.getElementById("save-admin-task").addEventListener("click", async () => {
@@ -834,6 +825,7 @@ async function sendTaskToGoogleSheet(payload) {
 
         try {
             adminMsg.textContent = "جارٍ الحفظ في Google Sheet ...";
+
             const result = await sendTaskToGoogleSheet(payload);
 
             if (result && result.status === "success") {
@@ -843,12 +835,15 @@ async function sendTaskToGoogleSheet(payload) {
                 document.getElementById("task-title").value = "";
                 document.getElementById("task-permissions").value = "";
                 document.getElementById("task-notes-admin").value = "";
+            } else if (result && result.message === "invalid_admin_key") {
+                adminMsg.textContent = "❌ كود الأمان غير صحيح. تأكد من Admin Key.";
+                adminMsg.classList.add("error");
             } else {
                 adminMsg.textContent = "تعذر الحفظ. تأكد من إعداد الـ Apps Script وكود الأمان.";
                 adminMsg.classList.add("error");
             }
         } catch (err) {
-            console.error(err);
+            console.error("Error while calling Apps Script:", err);
             adminMsg.textContent = "حدث خطأ أثناء الاتصال بالسكريبت. راجع الـ URL أو الصلاحيات.";
             adminMsg.classList.add("error");
         }
@@ -857,7 +852,3 @@ async function sendTaskToGoogleSheet(payload) {
 
 </body>
 </html>
-
-
-
-
