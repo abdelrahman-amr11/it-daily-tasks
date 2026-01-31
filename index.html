@@ -490,6 +490,9 @@
         </div>
     </section>
 
+    <!-- الفئات والمهام (كما هي عندك) -->
+    <!-- ... نفس أقسام Network / RIS / Backup / Support / Security بدون تغيير ... -->
+
     <!-- الفئة 1: متابعة الشبكة والربط بين الفروع -->
     <section class="category">
         <div class="category-header">
@@ -650,6 +653,9 @@
     </p>
 </main>
 
+<!-- Iframe مخفي علشان استقبال رد الفورم بدون ما يفتح صفحة جديدة -->
+<iframe name="hidden_iframe" style="display:none;"></iframe>
+
 <script>
     // ===== إعداد التاريخ في الهيدر =====
     function formatArabicDate(date) {
@@ -776,28 +782,34 @@
         }
     });
 
-    // ===== ربط Google Sheet: إرسال بيانات إلى Apps Script =====
+    // ===== ربط Google Sheet: إرسال بيانات كـ Form لتفادي CORS =====
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzlPJ1ILVO-P5TlWuU5hCC2a4h7HkOMCpflKtfCmvHRLvESBAKcJ33UiJve3hrvbkw/exec";
 
-    async function sendTaskToGoogleSheet(payload) {
-        // لو حابب تشوف الـ payload في Console
-        console.log("Sending payload to Apps Script:", payload);
+    function sendTaskToGoogleSheet(payload) {
+        console.log("Sending payload via FORM to Apps Script:", payload);
 
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-        });
+        // إنشاء Form مخفي
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = GOOGLE_SCRIPT_URL;
+        form.target = "hidden_iframe"; // عشان ما يفتحش صفحة جديدة
+        form.style.display = "none";
 
-        if (!response.ok) {
-            throw new Error("HTTP Error " + response.status);
+        // إضافة الحقول
+        for (const [key, value] of Object.entries(payload)) {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = value;
+            form.appendChild(input);
         }
 
-        const data = await response.json();
-        console.log("Script response:", data);
-        return data;
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        // هنعتبر إن مفيش Error طالما مافيش استثناء
+        return { status: "success" };
     }
 
     document.getElementById("save-admin-task").addEventListener("click", async () => {
@@ -829,17 +841,14 @@
             const result = await sendTaskToGoogleSheet(payload);
 
             if (result && result.status === "success") {
-                adminMsg.textContent = "✅ تم حفظ المهمة بنجاح في Google Sheet.";
+                adminMsg.textContent = "✅ تم إرسال المهمة إلى Google Sheet (تحقق من الشيت للتأكد من التسجيل).";
                 adminMsg.classList.add("success");
 
                 document.getElementById("task-title").value = "";
                 document.getElementById("task-permissions").value = "";
                 document.getElementById("task-notes-admin").value = "";
-            } else if (result && result.message === "invalid_admin_key") {
-                adminMsg.textContent = "❌ كود الأمان غير صحيح. تأكد من Admin Key.";
-                adminMsg.classList.add("error");
             } else {
-                adminMsg.textContent = "تعذر الحفظ. تأكد من إعداد الـ Apps Script وكود الأمان.";
+                adminMsg.textContent = "تم إرسال الطلب، لكن لم يتم التأكد من الرد. راجع الشيت للتأكد.";
                 adminMsg.classList.add("error");
             }
         } catch (err) {
